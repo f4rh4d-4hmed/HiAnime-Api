@@ -1,5 +1,5 @@
 """
-HiAnime - Python port of the Kotlin Aniyomi Extension
+HiAnime - Python port of the Kotlin Aniyomi Extension https://github.com/yuzono/aniyomi-extensions
 """
 
 import aiohttp
