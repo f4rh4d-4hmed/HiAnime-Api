@@ -398,6 +398,139 @@ gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
 - HD-1 usually provides the best quality
 - DUB availability varies by anime
 
+---
+
+## Error Handling
+
+The API returns appropriate HTTP status codes and error messages for various error conditions.
+
+### Error Response Format
+
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+### HTTP Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `400` | Bad Request - Invalid parameters (e.g., invalid server, type, or ID format) |
+| `404` | Not Found - Resource not found (anime, episode, no results) |
+| `422` | Unprocessable Entity - Validation error (e.g., missing required parameter) |
+| `503` | Service Unavailable - Failed to connect to upstream server |
+
+### Error Examples
+
+#### 404 - Anime Not Found
+
+```bash
+curl "http://localhost:8000/info/non-existent-anime-12345"
+```
+
+```json
+{
+  "detail": "Anime 'non-existent-anime-12345' not found"
+}
+```
+
+#### 404 - No Search Results
+
+```bash
+curl "http://localhost:8000/search?q=xyznonexistent123"
+```
+
+```json
+{
+  "detail": "No results found for query 'xyznonexistent123'"
+}
+```
+
+#### 400 - Invalid Server Parameter
+
+```bash
+curl "http://localhost:8000/watch/92761?server=InvalidServer"
+```
+
+```json
+{
+  "detail": "Invalid server 'InvalidServer'. Valid options: HD-1, HD-2, HD-3, StreamTape"
+}
+```
+
+#### 400 - Invalid Type Parameter
+
+```bash
+curl "http://localhost:8000/watch/92761?type=invalid"
+```
+
+```json
+{
+  "detail": "Invalid type 'invalid'. Valid options: sub, dub, raw, mixed"
+}
+```
+
+#### 422 - Missing Required Parameter
+
+```bash
+curl "http://localhost:8000/search"
+```
+
+```json
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": ["query", "q"],
+      "msg": "Field required"
+    }
+  ]
+}
+```
+
+#### 422 - Invalid Page Number
+
+```bash
+curl "http://localhost:8000/search?q=naruto&page=0"
+```
+
+```json
+{
+  "detail": [
+    {
+      "type": "greater_than_equal",
+      "loc": ["query", "page"],
+      "msg": "Input should be greater than or equal to 1"
+    }
+  ]
+}
+```
+
+#### 400 - Invalid Episode ID Format
+
+```bash
+curl "http://localhost:8000/servers/invalid-id"
+```
+
+```json
+{
+  "detail": "Invalid episode ID 'invalid-id'. Episode ID must be numeric."
+}
+```
+
+#### 503 - Service Unavailable
+
+```bash
+curl "http://localhost:8000/search?q=naruto"
+```
+
+```json
+{
+  "detail": "Failed to connect to server: Cannot connect to host hianime.to:443"
+}
+```
+
 ## License
 
 For educational purposes only.
