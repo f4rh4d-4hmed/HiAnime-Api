@@ -118,7 +118,10 @@ class HiAnime:
     async def search(self, query: str, page: int = 1) -> Dict[str, Any]:
         """Search for anime - mirrors searchAnimeRequest"""
         url = f"{self.base_url}/search?keyword={quote(query)}&page={page}"
-        html = await self._fetch(url)
+        try:
+            html = await self._fetch(url)
+        except aiohttp.ClientError as e:
+            return {"error": f"Failed to connect to server: {str(e)}", "results": []}
         soup = BeautifulSoup(html, "html.parser")
         
         results = []
@@ -136,7 +139,10 @@ class HiAnime:
     async def get_popular(self, page: int = 1) -> Dict[str, Any]:
         """Get most popular anime - mirrors popularAnimeRequest"""
         url = f"{self.base_url}/most-popular?page={page}"
-        html = await self._fetch(url)
+        try:
+            html = await self._fetch(url)
+        except aiohttp.ClientError as e:
+            return {"error": f"Failed to connect to server: {str(e)}", "results": []}
         soup = BeautifulSoup(html, "html.parser")
         
         results = []
@@ -154,7 +160,10 @@ class HiAnime:
     async def get_latest(self, page: int = 1) -> Dict[str, Any]:
         """Get recently updated anime - mirrors latestUpdatesRequest"""
         url = f"{self.base_url}/recently-updated?page={page}"
-        html = await self._fetch(url)
+        try:
+            html = await self._fetch(url)
+        except aiohttp.ClientError as e:
+            return {"error": f"Failed to connect to server: {str(e)}", "results": []}
         soup = BeautifulSoup(html, "html.parser")
         
         results = []
@@ -195,8 +204,20 @@ class HiAnime:
     async def get_anime_details(self, anime_id: str) -> Dict[str, Any]:
         """Get anime details - mirrors animeDetailsParse"""
         url = f"{self.base_url}/{anime_id}"
-        html = await self._fetch(url)
+        try:
+            html = await self._fetch(url)
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                return {"error": f"Anime '{anime_id}' not found"}
+            return {"error": f"Failed to fetch anime details: HTTP {e.status}"}
+        except aiohttp.ClientError as e:
+            return {"error": f"Failed to connect to server: {str(e)}"}
         soup = BeautifulSoup(html, "html.parser")
+        
+        # Check if the page is a valid anime page
+        title_elem = soup.select_one("h2.film-name")
+        if not title_elem:
+            return {"error": f"Anime '{anime_id}' not found"}
         
         # Get thumbnail
         poster = soup.select_one("div.anisc-poster img")
@@ -246,9 +267,8 @@ class HiAnime:
         if japanese:
             description_parts.append(f"\nJapanese: {japanese}")
         
-        # Get title
-        title_elem = soup.select_one("h2.film-name")
-        title = title_elem.get_text(strip=True) if title_elem else anime_id
+        # Get title (title_elem already validated above)
+        title = title_elem.get_text(strip=True)
         
         # Get Japanese title
         jp_title_elem = soup.select_one("h2.film-name[data-jname]")
@@ -271,12 +291,26 @@ class HiAnime:
         # Extract numeric ID from anime_id (e.g., "boruto-123" -> "123")
         numeric_id = anime_id.split("-")[-1]
         
+        # Validate that numeric_id is actually a number
+        if not numeric_id.isdigit():
+            return {"error": f"Invalid anime ID format '{anime_id}'. Expected format: 'anime-name-12345'"}
+        
         url = f"{self.base_url}/ajax{self.ajax_route}/episode/list/{numeric_id}"
         referer = f"{self.base_url}/{anime_id}"
         
-        data = await self._fetch_json(url, self._get_api_headers(referer))
+        try:
+            data = await self._fetch_json(url, self._get_api_headers(referer))
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                return {"error": f"Anime '{anime_id}' not found"}
+            return {"error": f"Failed to fetch episodes: HTTP {e.status}"}
+        except aiohttp.ClientError as e:
+            return {"error": f"Failed to connect to server: {str(e)}"}
         
         html = data.get("html", "")
+        if not html:
+            return {"error": f"Anime '{anime_id}' not found or has no episodes"}
+        
         soup = BeautifulSoup(html, "html.parser")
         
         episodes = []
@@ -317,12 +351,26 @@ class HiAnime:
     
     async def get_episode_servers(self, episode_id: str, type_filter: Optional[str] = None) -> Dict[str, Any]:
         """Get available servers for an episode - mirrors videoListRequest"""
+        # Validate episode_id is numeric
+        if not episode_id.isdigit():
+            return {"error": f"Invalid episode ID '{episode_id}'. Episode ID must be numeric."}
+        
         url = f"{self.base_url}/ajax{self.ajax_route}/episode/servers?episodeId={episode_id}"
         referer = f"{self.base_url}/watch?ep={episode_id}"
         
-        data = await self._fetch_json(url, self._get_api_headers(referer))
+        try:
+            data = await self._fetch_json(url, self._get_api_headers(referer))
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                return {"error": f"Episode '{episode_id}' not found"}
+            return {"error": f"Failed to fetch servers: HTTP {e.status}"}
+        except aiohttp.ClientError as e:
+            return {"error": f"Failed to connect to server: {str(e)}"}
         
         html = data.get("html", "")
+        if not html:
+            return {"error": f"Episode '{episode_id}' not found"}
+        
         soup = BeautifulSoup(html, "html.parser")
         
         servers = {
