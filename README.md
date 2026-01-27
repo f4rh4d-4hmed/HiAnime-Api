@@ -533,4 +533,6 @@ curl "http://localhost:8000/search?q=naruto"
 
 ## License
 
-For educational purposes only.
+This project is licensed under the [CC BY-NC 4.0](LICENSE) license.
+
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
