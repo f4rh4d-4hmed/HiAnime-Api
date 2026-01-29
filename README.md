@@ -536,3 +536,6 @@ curl "http://localhost:8000/search?q=naruto"
 This project is licensed under the [CC BY-NC 4.0](LICENSE) license.
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
+
+## Credit
+This API was created based on the Aniyomi Extension Repo from https://yuzono.github.io/
