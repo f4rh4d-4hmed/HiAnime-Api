@@ -2,6 +2,8 @@
 
 A Python API for streaming anime from HiAnime. Supports search, browse, and video extraction with Sub/Dub/Raw options.
 
+⚠️Doesn't work anymore, because hianime is gone. Bye Bye
+
 ## Installation
 
 ```bash
